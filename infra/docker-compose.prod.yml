@@ -1,0 +1,136 @@
+version: "3.9"
+
+# Production deployment for Hetzner CX42 VPS
+# Usage: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: judge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: onlinejudge
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge -d onlinejudge"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  backend:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_REPO}/backend:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://judge:${POSTGRES_PASSWORD}@postgres:5432/onlinejudge
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - DEBUG=false
+    volumes:
+      - testcase_data:/app/testcases
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+      - external
+
+  celery-worker:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_REPO}/backend:${IMAGE_TAG:-latest}
+    restart: always
+    command: celery -A workers.celery_app worker --loglevel=info --concurrency=8 -Q judge,grade,default
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://judge:${POSTGRES_PASSWORD}@postgres:5432/onlinejudge
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - DEBUG=false
+    volumes:
+      - testcase_data:/app/testcases
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+
+  celery-beat:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_REPO}/backend:${IMAGE_TAG:-latest}
+    restart: always
+    command: celery -A workers.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://judge:${POSTGRES_PASSWORD}@postgres:5432/onlinejudge
+      - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - DEBUG=false
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+
+  frontend:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_REPO}/frontend:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - internal
+      - external
+
+networks:
+  internal:
+    driver: bridge
+  external:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  testcase_data:
