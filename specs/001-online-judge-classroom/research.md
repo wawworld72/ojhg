@@ -154,7 +154,50 @@
 
 ---
 
-## 8. 프로젝트 구조 결정
+## 8. GitHub Publish — 커밋 히스토리 업로드 방식
+
+### Decision: GitHub Git Data API로 학생별 브랜치에 순차 커밋 생성
+
+**브랜치 구조**:
+```
+repo: {target-repo-name}  (교사 GitHub 계정)
+  branch: submissions/{assignment-slug}/{student-slug}
+    commit [#1] WA  2026-05-11T14:00Z  ← solution.py (첫 시도)
+    commit [#2] WA  2026-05-11T14:15Z  ← solution.py (두 번째 시도)
+    commit [#3] AC  2026-05-11T14:30Z  ← solution.py (세 번째, Accepted)
+```
+
+**커밋 생성 흐름 (Git Data API)**:
+1. `GET /repos/{owner}/{repo}/git/refs/heads/{branch}` — 브랜치 최신 커밋 SHA 조회 (없으면 main에서 분기)
+2. `POST /repos/{owner}/{repo}/git/blobs` — 코드 파일 blob 생성
+3. `POST /repos/{owner}/{repo}/git/trees` — 새 tree 생성 (blob 포함)
+4. `POST /repos/{owner}/{repo}/git/commits` — 커밋 생성 (parent: 이전 커밋 SHA)
+5. `PATCH /repos/{owner}/{repo}/git/refs/heads/{branch}` — 브랜치 ref 갱신
+
+**커밋 메시지 형식**:
+```
+[Attempt #3] Accepted ✓ — 2026-05-11T14:30:00Z
+Score: 100/100 | Language: python3 | Time: 1.2s
+```
+
+**Rate Limit 분석**:
+- 50명 × 평균 10시도 = 500 커밋 × 5 API 호출 = 2,500 요청
+- GitHub 인증 요청 한도: 5,000/시간 → 충분히 범위 내
+- 순차 처리 시 ~25분 예상 (요청 간 50ms 딜레이 적용 시)
+- Celery 워커에서 학생별 병렬 처리 가능 (10개 동시): ~3분으로 단축
+
+**저장소 자동 생성**:
+- 저장소 없으면 `POST /user/repos` 로 private 저장소 자동 생성
+- 생성 시 README에 수업명, 과제명 포함
+
+**Alternatives considered**:
+- 학생별 별도 저장소: 저장소 수 과다(50개), 관리 복잡 → 제외.
+- main 브랜치 직접 커밋: 모든 학생 커밋이 섞여 이력 추적 불가 → 제외.
+- ZIP 업로드: git 히스토리 없어 리뷰 기능 활용 불가 → 제외.
+
+---
+
+## 9. 프로젝트 구조 결정
 
 **Decision**: Option 2 (Web application) — backend + frontend 분리 모노레포
 

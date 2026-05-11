@@ -278,6 +278,58 @@ pending → success
 
 ---
 
+### GitHubIntegration
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | UUID | PK | |
+| teacher_id | UUID | FK(User) UNIQUE NOT NULL | 1교사 1연동 |
+| github_username | VARCHAR(255) | NOT NULL | GitHub 계정명 |
+| encrypted_access_token | TEXT | NOT NULL | GitHub OAuth 토큰 (AES-256 암호화) |
+| target_repo_name | VARCHAR(255) | NOT NULL | 업로드 대상 저장소명 |
+| created_at | TIMESTAMPTZ | NOT NULL DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL DEFAULT now() | |
+
+---
+
+### GitHubPublish
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | UUID | PK | |
+| assignment_id | UUID | FK(ClassroomAssignment) NOT NULL | |
+| initiated_by | UUID | FK(User) NOT NULL | Publish 실행 교사 |
+| status | ENUM('pending','running','completed','partial','failed') | NOT NULL DEFAULT 'pending' | |
+| repo_url | TEXT | NULL | 생성된 GitHub 저장소 URL |
+| started_at | TIMESTAMPTZ | NULL | |
+| completed_at | TIMESTAMPTZ | NULL | |
+| created_at | TIMESTAMPTZ | NOT NULL DEFAULT now() | |
+
+---
+
+### GitHubPublishStudentResult
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | UUID | PK | |
+| publish_id | UUID | FK(GitHubPublish) NOT NULL | |
+| student_id | UUID | FK(User) NOT NULL | |
+| status | ENUM('pending','success','failed') | NOT NULL DEFAULT 'pending' | |
+| branch_name | VARCHAR(500) | NULL | 생성된 브랜치명 |
+| branch_url | TEXT | NULL | GitHub 브랜치 URL |
+| commits_pushed | INTEGER | NOT NULL DEFAULT 0 | 성공적으로 푸시된 커밋 수 |
+| error_message | TEXT | NULL | 실패 시 오류 |
+| updated_at | TIMESTAMPTZ | NOT NULL DEFAULT now() | |
+
+**UNIQUE(publish_id, student_id)**
+
+**비즈니스 규칙**:
+- 브랜치명 형식: `submissions/{assignment-slug}/{student-email-slug}`
+- 학생 식별자: Google 이메일 로컬 파트를 소문자 + 특수문자→하이픈으로 슬러그화.
+- 재 Publish 시 동일 브랜치에 커밋 추가 (브랜치 재생성 안 함).
+
+---
+
 ### SimilarityReport
 
 | 필드 | 타입 | 제약 | 설명 |

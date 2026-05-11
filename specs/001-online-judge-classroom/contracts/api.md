@@ -253,6 +253,59 @@ data: {"verdict": "ACCEPTED", "score": 80.0, "attempt_number": 7}
 
 ---
 
+## GitHub 연동 & Publish
+
+### `POST /github/connect` — 교사 GitHub OAuth 연동
+GitHub OAuth 흐름 시작. 완료 후 `GitHubIntegration` 레코드 생성.
+```json
+// Response 200
+{ "github_username": "string", "target_repo_name": "string" }
+```
+
+### `GET /github/status` — GitHub 연동 상태 조회 (교사)
+```json
+{ "connected": true, "github_username": "string", "target_repo_name": "string" }
+```
+
+### `POST /assignments/{assignment_id}/publish` — GitHub Publish 실행 (교사)
+과제 마감 후에만 허용. 비동기 처리.
+```json
+// Response 202
+{ "publish_id": "uuid", "status": "pending" }
+```
+
+**오류**: 마감 전 실행 → `403`. GitHub 미연동 → `400`.
+
+### `GET /assignments/{assignment_id}/publish/status` — Publish 진행 상태 조회 (교사)
+```json
+{
+  "publish_id": "uuid",
+  "status": "running",
+  "repo_url": "string|null",
+  "total_students": 50,
+  "completed_students": 23,
+  "failed_students": 1,
+  "student_results": [{
+    "student_id": "uuid",
+    "name": "string",
+    "status": "success|failed|pending",
+    "branch_url": "string|null",
+    "commits_pushed": 8,
+    "error_message": "string|null"
+  }]
+}
+```
+
+### `POST /assignments/{assignment_id}/publish/retry` — 실패 학생 재시도 (교사)
+```json
+// Request
+{ "student_ids": ["uuid1", "uuid2"] }
+// Response 202
+{ "publish_id": "uuid", "retrying_count": 2 }
+```
+
+---
+
 ## 제출 기록 & 코드 유사도 분석
 
 ### `GET /courses/{course_id}/dashboard` — 교사 수업 대시보드
