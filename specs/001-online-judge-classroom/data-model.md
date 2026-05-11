@@ -324,7 +324,10 @@ pending → success
 **UNIQUE(publish_id, student_id)**
 
 **비즈니스 규칙**:
-- 브랜치명 형식: `submissions/{assignment-slug}/{student-email-slug}`
+- 브랜치명 형식: `submissions/{assignment-slug}/{problem-slug}/{student-email-slug}`
+  - 예: `submissions/hw-01/problem-1-sorting/alice-kim`
+- 문제 단위로 브랜치를 분리하여 각 브랜치의 `git log`가 단일 문제 풀이 이력만 포함.
+- 50명 × 문제 N개 = N×50 브랜치가 한 저장소에 공존; 브랜치 간 독립성으로 충돌 없음.
 - 학생 식별자: Google 이메일 로컬 파트를 소문자 + 특수문자→하이픈으로 슬러그화.
 - 재 Publish 시 동일 브랜치에 커밋 추가 (브랜치 재생성 안 함).
 

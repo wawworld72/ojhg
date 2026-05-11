@@ -158,14 +158,34 @@
 
 ### Decision: GitHub Git Data API로 학생별 브랜치에 순차 커밋 생성
 
-**브랜치 구조**:
+**브랜치 구조 — 문제(Problem) 단위 분리**:
 ```
 repo: {target-repo-name}  (교사 GitHub 계정)
-  branch: submissions/{assignment-slug}/{student-slug}
-    commit [#1] WA  2026-05-11T14:00Z  ← solution.py (첫 시도)
-    commit [#2] WA  2026-05-11T14:15Z  ← solution.py (두 번째 시도)
-    commit [#3] AC  2026-05-11T14:30Z  ← solution.py (세 번째, Accepted)
+
+  # 문제별로 브랜치 분리 → git log = 단일 문제 순수 풀이 이력
+  branch: submissions/hw-01/problem-1-sort/alice-kim
+    commit "[#1] WA  | python3 | 2026-05-11T14:00Z"  ← solution.py
+    commit "[#2] WA  | python3 | 2026-05-11T14:15Z"  ← solution.py
+    commit "[#3] AC ✓| python3 | 2026-05-11T14:30Z | Score: 100/100"
+
+  branch: submissions/hw-01/problem-2-dp/alice-kim
+    commit "[#1] WA  | java17  | 2026-05-11T15:00Z"
+    commit "[#2] AC ✓| java17  | 2026-05-11T15:20Z | Score: 80/100"
+
+  branch: submissions/hw-01/problem-1-sort/bob-lee   ← bob 전용, alice와 완전 독립
+    commit "[#1] WA  | cpp17   | ..."
+    ...
 ```
+
+**왜 과제(Assignment) 단위 브랜치가 아닌가**:
+- 과제 단위 브랜치에 여러 문제 커밋이 섞이면 `git log`가 문제1/문제2 커밋이 
+  시간 순으로 뒤섞여 특정 문제의 풀이 과정만 추적하기 어려움.
+- 문제 단위 분리 시 브랜치 수 = 학생 수 × 문제 수 (50명 × 5문제 = 250개).
+  GitHub은 수천 개 브랜치를 처리하므로 전혀 문제없음.
+
+**브랜치 간 독립성 (충돌 없음)**:
+- Git 브랜치는 독립 포인터; 브랜치 A 커밋이 브랜치 B에 물리적으로 영향 없음.
+- 50명 동시 Publish 중 서로 다른 브랜치 ref를 갱신하므로 race condition 불가.
 
 **커밋 생성 흐름 (Git Data API)**:
 1. `GET /repos/{owner}/{repo}/git/refs/heads/{branch}` — 브랜치 최신 커밋 SHA 조회 (없으면 main에서 분기)
