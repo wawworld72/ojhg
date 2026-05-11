@@ -63,7 +63,10 @@ app.add_middleware(
 async def request_id_middleware(request: Request, call_next):
     request_id = str(uuid.uuid4())
     request.state.request_id = request_id
-    user_id = request.session.get("user_id", "-") if hasattr(request, "session") else "-"
+    try:
+        user_id = request.session.get("user_id", "-")
+    except AssertionError:
+        user_id = "-"
     logger.info(
         "request start method=%s path=%s",
         request.method,
