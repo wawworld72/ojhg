@@ -1,0 +1,89 @@
+{
+  "version": "1.0",
+  "display_id": "2026-2차-01",
+  "title": "10-MIX: 골드 아이템 구매 계산기",
+  "description": {
+    "format": "html",
+    "value": "<p>게임 내 골드를 입력하면 아이템 구매 수량과 공격력 증가율을 계산하는 프로그램입니다.</p><p>코드에는 빈칸과 오류가 포함되어 있습니다. 코드 전체를 꼼꼼히 분석하여 올바르게 동작하도록 완성하세요.</p><ul><li>변수의 자료형과 입출력 함수가 올바르게 대응되는지 확인하세요.</li><li>각 계산식에서 적절한 연산자와 상수값이 사용되었는지 확인하세요.</li><li>변수 초기값과 출력 형식이 의도한 결과를 내는지 확인하세요.</li></ul>"
+  },
+  "input_description": {
+    "format": "html",
+    "value": "<p>한 줄에 골드 값(<code>gold</code>)이 실수형으로 입력됩니다.</p>"
+  },
+  "output_description": {
+    "format": "html",
+    "value": "<p>골드 입력 안내 문구를 출력한 후, 보유 골드(소수점 6자리), 공격력 증가 퍼센트(따옴표 포함 문자열 형식), 아이템 개수를 순서대로 출력합니다.</p>"
+  },
+  "hint": {
+    "format": "html",
+    "value": ""
+  },
+  "tags": ["MIX_CODE"],
+  "source": "게임소프트웨어학과",
+  "time_limit": 1000,
+  "memory_limit": 256,
+  "allowed_languages": ["C"],
+  "rule_type": "OI",
+
+  "test_cases": [
+    {
+      "order": 1,
+      "input": "50.0",
+      "output": "골드 입력: \n보유 골드: 50.000000\n공격력 증가: \"50%\" 달성!\nP 1개 보유 중",
+      "score": 1,
+      "is_sample": true
+    },
+    {
+      "order": 2,
+      "input": "100.0",
+      "output": "골드 입력: \n보유 골드: 100.000000\n공격력 증가: \"50%\" 달성!\nP 3개 보유 중",
+      "score": 1,
+      "is_sample": true
+    },
+    {
+      "order": 3,
+      "input": "300.0",
+      "output": "골드 입력: \n보유 골드: 300.000000\n공격력 증가: \"50%\" 달성!\nP 10개 보유 중",
+      "score": 2,
+      "is_sample": false
+    },
+    {
+      "order": 4,
+      "input": "0.0",
+      "output": "골드 입력: \n보유 골드: 0.000000\n공격력 증가: \"50%\" 달성!\nP 0개 보유 중",
+      "score": 3,
+      "is_sample": false
+    },
+    {
+      "order": 5,
+      "input": "999.9",
+      "output": "골드 입력: \n보유 골드: 999.900000\n공격력 증가: \"50%\" 달성!\nP 33개 보유 중",
+      "score": 3,
+      "is_sample": false
+    }
+  ],
+
+  "attempt_score_tiers": [
+    { "max_attempts": 5,  "score_ratio": 100 },
+    { "max_attempts": 10, "score_ratio": 80  },
+    { "max_attempts": 20, "score_ratio": 60  },
+    { "max_attempts": null, "score_ratio": 0 }
+  ],
+
+  "template": {
+    "C": {
+      "prepend": "/* */\n",
+      "template": "#include <stdio.h>\n\nint main() {\n    short gold;\n    char item = \"P\";\n    int count;\n    int boost = 50;\n    int level = 0;\n\n    printf(\"골드 입력: \\n\");\n    scanf(\"%hd\", &gold);\n\n    count = gold % 300;\n\n    printf(\"보유 골드: %hd\\n\", gold);\n    printf(\"공격력 증가: \\\"%d%%\\\" 달성!\\n\", boost * level);\n    printf(\"%c %d개 보유 중\\n\", ______ );\n\n    return 0;\n}\n",
+      "append": "/* */\n"
+    }
+  },
+
+  "answers": [
+    {
+      "language": "C",
+      "code": "#include <stdio.h>\n\nint main() {\n    double gold;\n    char item = 'P';\n    int count;\n    int boost = 50;\n    int level = 1;\n\n    printf(\"골드 입력: \\n\");\n    scanf(\"%lf\", &gold);\n\n    count = gold / 30;\n\n    printf(\"보유 골드: %.6lf\\n\", gold);\n    printf(\"공격력 증가: \\\"%d%%\\\" 달성!\\n\", boost * level);\n    printf(\"%c %d개 보유 중\\n\", item, count);\n\n    return 0;\n}\n"
+    }
+  ],
+
+  "spj": null
+}

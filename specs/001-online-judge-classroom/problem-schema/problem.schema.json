@@ -1,0 +1,212 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "ojhg-problem-v1",
+  "title": "Online Judge Problem Definition",
+  "description": "단일 문제 정의 스키마 v1.0 — 이 파일 하나로 문제 생성, 테스트 케이스 채점, 시도 횟수 배점이 모두 구성됩니다.",
+  "type": "object",
+  "required": ["version", "display_id", "title", "description", "test_cases", "attempt_score_tiers"],
+  "properties": {
+
+    "version": {
+      "type": "string",
+      "description": "스키마 버전",
+      "const": "1.0"
+    },
+
+    "display_id": {
+      "type": "string",
+      "description": "문제 고유 식별자 (예: 2026-2차-01). 시스템 내 중복 불가.",
+      "examples": ["2026-2차-01", "2026-hw3-02"]
+    },
+
+    "title": {
+      "type": "string",
+      "description": "문제 제목 (학생에게 표시)"
+    },
+
+    "description": {
+      "$ref": "#/$defs/richText",
+      "description": "문제 설명 (HTML 또는 Markdown)"
+    },
+
+    "input_description": {
+      "$ref": "#/$defs/richText",
+      "description": "입력 형식 설명"
+    },
+
+    "output_description": {
+      "$ref": "#/$defs/richText",
+      "description": "출력 형식 설명"
+    },
+
+    "hint": {
+      "$ref": "#/$defs/richText",
+      "description": "힌트 (선택, 학생에게 선택적 공개)"
+    },
+
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "분류 태그 (예: MIX_CODE, ARRAY, RECURSION)",
+      "examples": [["MIX_CODE"], ["ARRAY", "SORT"]]
+    },
+
+    "source": {
+      "type": "string",
+      "description": "출처 (예: 게임소프트웨어학과)"
+    },
+
+    "time_limit": {
+      "type": "integer",
+      "description": "실행 시간 제한 (밀리초). 1000 = 1초.",
+      "minimum": 100,
+      "maximum": 10000,
+      "default": 1000
+    },
+
+    "memory_limit": {
+      "type": "integer",
+      "description": "메모리 제한 (MB)",
+      "minimum": 32,
+      "maximum": 512,
+      "default": 256
+    },
+
+    "allowed_languages": {
+      "type": "array",
+      "description": "허용 프로그래밍 언어 목록. 생략 시 전체 허용.",
+      "items": {
+        "type": "string",
+        "enum": ["C", "C++17", "Python3", "Java17"]
+      },
+      "examples": [["C"], ["C", "C++17", "Python3", "Java17"]]
+    },
+
+    "rule_type": {
+      "type": "string",
+      "description": "채점 방식. OI = 테스트 케이스별 부분 점수, ACM = 전체 통과 시에만 점수.",
+      "enum": ["OI", "ACM"],
+      "default": "OI"
+    },
+
+    "test_cases": {
+      "type": "array",
+      "description": "테스트 케이스 목록. samples와 통합 — is_sample: true인 케이스가 학생에게 공개됩니다.",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": ["order", "input", "output", "score", "is_sample"],
+        "properties": {
+          "order": {
+            "type": "integer",
+            "description": "채점 순서 (1부터 시작)",
+            "minimum": 1
+          },
+          "input": {
+            "type": "string",
+            "description": "입력 데이터 (개행 포함 그대로)"
+          },
+          "output": {
+            "type": "string",
+            "description": "기대 출력 데이터 (개행 포함 그대로)"
+          },
+          "score": {
+            "type": "number",
+            "description": "이 테스트 케이스 통과 시 획득 기본 점수",
+            "minimum": 0,
+            "exclusiveMinimum": 0
+          },
+          "is_sample": {
+            "type": "boolean",
+            "description": "true: 학생에게 입출력 공개 (문제 설명에 예시로 표시). false: 결과만 공개."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+
+    "attempt_score_tiers": {
+      "type": "array",
+      "description": "시도 횟수에 따른 점수 비율 구간. 구간이 겹치면 안 됩니다. 어떤 구간에도 해당하지 않으면 0점.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["max_attempts", "score_ratio"],
+        "properties": {
+          "min_attempts": {
+            "type": "integer",
+            "description": "구간 시작 시도 횟수 (포함). 생략 시 이전 구간 max_attempts + 1로 자동 계산.",
+            "minimum": 1
+          },
+          "max_attempts": {
+            "type": ["integer", "null"],
+            "description": "구간 끝 시도 횟수 (포함). null = 이 구간 이상의 모든 시도에 적용.",
+            "minimum": 1
+          },
+          "score_ratio": {
+            "type": "number",
+            "description": "이 구간에서 Accepted 시 적용되는 점수 비율 (0~100%). 최종 점수 = 테스트 케이스 합산 × (score_ratio / 100)",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "additionalProperties": false
+      },
+      "examples": [
+        [
+          {"max_attempts": 5,  "score_ratio": 100},
+          {"max_attempts": 10, "score_ratio": 80},
+          {"max_attempts": 20, "score_ratio": 60},
+          {"max_attempts": null, "score_ratio": 0}
+        ]
+      ]
+    },
+
+    "template": {
+      "type": "object",
+      "description": "언어별 코드 템플릿 (MIX_CODE 유형 문제에서 학생에게 초기 코드 제공).",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["template"],
+        "properties": {
+          "prepend": { "type": "string", "description": "에디터에 보이지 않는 앞부분 코드" },
+          "template": { "type": "string", "description": "학생에게 편집 가능한 초기 코드" },
+          "append":  { "type": "string", "description": "에디터에 보이지 않는 뒷부분 코드" }
+        }
+      },
+      "examples": [{"C": {"prepend": "", "template": "#include ...", "append": ""}}]
+    },
+
+    "answers": {
+      "type": "array",
+      "description": "정답 코드 (교사 전용, 학생에게 미공개). 자동 채점 검증 및 교사 참고용.",
+      "items": {
+        "type": "object",
+        "required": ["language", "code"],
+        "properties": {
+          "language": { "type": "string", "enum": ["C", "C++17", "Python3", "Java17"] },
+          "code":     { "type": "string" }
+        }
+      }
+    },
+
+    "spj": {
+      "type": ["string", "null"],
+      "description": "스페셜 저지 스크립트 (null = 표준 출력 비교). v2 예정."
+    }
+  },
+
+  "additionalProperties": false,
+
+  "$defs": {
+    "richText": {
+      "type": "object",
+      "required": ["format", "value"],
+      "properties": {
+        "format": { "type": "string", "enum": ["html", "markdown"] },
+        "value":  { "type": "string" }
+      }
+    }
+  }
+}

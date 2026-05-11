@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "ojhg-assignment-v1",
+  "title": "Online Judge Assignment Definition",
+  "description": "하나의 과제(Assignment) 정의 스키마 v1.0 — 여러 문제를 묶어 Google Classroom 과제와 연동합니다.",
+  "type": "object",
+  "required": ["version", "display_id", "title", "problems"],
+  "properties": {
+
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+
+    "display_id": {
+      "type": "string",
+      "description": "과제 고유 식별자 (예: 2026-2차). 시스템 내 중복 불가.",
+      "examples": ["2026-2차", "2026-hw3"]
+    },
+
+    "title": {
+      "type": "string",
+      "description": "과제 제목 (Classroom 과제 제목과 일치 권장)"
+    },
+
+    "description": {
+      "type": "object",
+      "description": "과제 전체 안내 설명 (선택)",
+      "properties": {
+        "format": { "type": "string", "enum": ["html", "markdown"] },
+        "value":  { "type": "string" }
+      }
+    },
+
+    "source": {
+      "type": "string",
+      "description": "출처 / 담당 과목명 (예: 게임소프트웨어학과)"
+    },
+
+    "allow_late_submission": {
+      "type": "boolean",
+      "description": "마감 이후 제출 허용 여부 (기본값 false)",
+      "default": false
+    },
+
+    "problems": {
+      "type": "array",
+      "description": "이 과제에 포함된 문제 목록. 순서대로 학생에게 표시됩니다.",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": ["order"],
+        "oneOf": [
+          {
+            "description": "외부 파일 참조 방식 — 별도 problem.json 파일을 참조합니다.",
+            "required": ["order", "ref"],
+            "properties": {
+              "order": {
+                "type": "integer",
+                "description": "문제 세트 내 표시 순서 (1부터 시작)",
+                "minimum": 1
+              },
+              "ref": {
+                "type": "string",
+                "description": "problem.json 파일 경로 (이 파일 기준 상대 경로 또는 display_id)",
+                "examples": ["./problems/2026-2차-01.json", "2026-2차-01"]
+              },
+              "max_points_override": {
+                "type": ["number", "null"],
+                "description": "이 과제에서의 문제 배점 재정의. null이면 problem.json의 test_cases score 합산 사용.",
+                "default": null
+              },
+              "attempt_score_tiers_override": {
+                "type": ["array", "null"],
+                "description": "이 과제에서만 적용할 시도 횟수 배점 구간 재정의. null이면 problem.json의 설정 사용.",
+                "default": null
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "인라인 방식 — problem.json 내용을 직접 포함합니다.",
+            "required": ["order", "problem"],
+            "properties": {
+              "order": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "problem": {
+                "$ref": "problem.schema.json",
+                "description": "문제 정의 전체를 인라인으로 포함"
+              },
+              "max_points_override": {
+                "type": ["number", "null"],
+                "default": null
+              },
+              "attempt_score_tiers_override": {
+                "type": ["array", "null"],
+                "default": null
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+
+  "additionalProperties": false
+}

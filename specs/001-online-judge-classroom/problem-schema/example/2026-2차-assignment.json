@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "display_id": "2026-2차",
+  "title": "2026년 2차 실습 과제",
+  "description": {
+    "format": "html",
+    "value": "<p>C 언어 기초 실습 과제입니다. 주어진 코드에서 오류를 찾고 빈칸을 완성하세요.</p>"
+  },
+  "source": "게임소프트웨어학과",
+  "allow_late_submission": false,
+
+  "problems": [
+    {
+      "order": 1,
+      "ref": "2026-2차-01"
+    },
+    {
+      "order": 2,
+      "ref": "2026-2차-02",
+      "attempt_score_tiers_override": [
+        { "max_attempts": 3,  "score_ratio": 100 },
+        { "max_attempts": 7,  "score_ratio": 70  },
+        { "max_attempts": null, "score_ratio": 40 }
+      ]
+    }
+  ]
+}
