@@ -14,11 +14,11 @@
 **Primary Dependencies**: FastAPI, SQLAlchemy 2 (async), Celery, google-auth-oauthlib, Next.js 14, React 18
 **Storage**: PostgreSQL 16 (주 데이터), Redis 7 (세션, Celery 브로커/결과), 로컬 볼륨 (테스트 케이스 파일)
 **Testing**: pytest + pytest-asyncio (backend), Jest + Testing Library (frontend), Docker-in-Docker (sandbox integration)
-**Target Platform**: 단일 Linux VPS — Hetzner CX32 (4vCPU/8GB/80GB, Ubuntu 22.04), Docker Compose 배포. GitHub Actions로 CI/CD 자동화. 데스크탑 브라우저 (Chrome/Firefox/Edge 최신)
+**Target Platform**: 단일 Linux VPS — Hetzner CX42 (8vCPU/16GB/160GB, Ubuntu 22.04, €18/월), Docker Compose 배포. GitHub Actions로 CI/CD 자동화. 데스크탑 브라우저 (Chrome/Firefox/Edge 최신)
 **Project Type**: Web application (backend API + frontend SPA + async worker)
-**Performance Goals**: 채점 결과 30초 이내, 동시 제출 50건 처리, Classroom 성적 반영 5분 이내
-**Constraints**: 샌드박스 컨테이너 메모리 max 512MB, 실행 시간 max 10초, 코드 실행은 네트워크 완전 차단
-**Scale/Scope**: 수업당 최대 200명 학생, 문제 세트당 최대 20문제, 테스트 케이스당 max 100개
+**Performance Goals**: 채점 결과 제출 후 5분 이내(대기 포함), 피크 부하 2.8건/초 처리, Classroom 성적 반영 5분 이내
+**Constraints**: 샌드박스 컨테이너 메모리 max 512MB, 실행 시간 max 10초, 네트워크 차단. GitHub Publish는 REST API가 아닌 git push 프로토콜 사용(Rate Limit 없음)
+**Scale/Scope**: 1회 수업: 50명 × 5문제 × 20시도 = 최대 5,000건/60분. Celery 워커 8개 병렬 채점
 
 ## Constitution Check
 

@@ -130,16 +130,26 @@
 - **결정적 제약**: 학생 코드 격리 실행을 위한 Docker 데몬 접근이 GitHub Actions/Pages/Codespaces 어디에서도 허용되지 않음.
 - Railway, Render 등 PaaS도 Docker-in-Docker(DinD) 를 제한적으로만 허용하여 샌드박스 구현 불가.
 
-**50명 규모 최대 동시 부하 계산**:
-- 동시 제출 피크: ~20건 (50명이 완전히 동시에 제출하지 않음, 실측 기준 40% 동시성 가정)
-- 채점 컨테이너 1개: 1 vCPU × 최대 10초, 256MB RAM
-- 20개 동시 채점: 5GB RAM 순간 사용 → **8GB RAM 필요**
+**실제 수업 부하 계산 (50명 × 5문제 × 20시도, 30~60분)**:
+```
+최대 총 제출: 5,000건
+30분 수업 기준 평균: ~167건/분 = 2.8건/초
+채점 1건 평균 처리 시간: 5~10초 (언어·문제 복잡도 따라 다름)
+필요 동시 채점 슬롯: 2.8건/초 × 10초 = 최대 28개
+```
 
-**권장 사양 (Hetzner CX32)**:
-- 4 vCPU, 8GB RAM, 80GB SSD
-- 월 €8 (약 ₩12,000)
-- Docker Compose 그대로 배포 가능
-- Ubuntu 22.04 LTS + ufw 방화벽
+**서버 사양 재검토**:
+
+| 옵션 | vCPU | RAM | 동시 채점 | 평균 대기 | 월 비용 |
+|------|------|-----|----------|----------|---------|
+| CX32 | 4 | 8GB | 4개 | ~7분 ❌ | €8 |
+| **CX42** | **8** | **16GB** | **8개** | **~3.5분** ✅ | **€18** |
+| CX52 | 16 | 32GB | 16개 | ~1.7분 | €38 |
+
+**권장: Hetzner CX42 (8 vCPU / 16GB / €18/월)**
+- 8개 Celery 워커 병렬 채점 → 평균 대기 3~4분 수용 가능
+- 채점 컨테이너 8개 × 256MB = 2GB + OS/앱 오버헤드 → 16GB 충분
+- 수업 후 Publish (5,000 커밋 git push): Celery 10개 병렬 → ~5분 내 완료
 
 **배포 전략**:
 - 단일 VPS에 Docker Compose (`docker-compose.prod.yml`)로 전체 스택 실행
@@ -200,11 +210,19 @@ repo: {target-repo-name}  (교사 GitHub 계정)
 Score: 100/100 | Language: python3 | Time: 1.2s
 ```
 
-**Rate Limit 분석**:
-- 50명 × 평균 10시도 = 500 커밋 × 5 API 호출 = 2,500 요청
-- GitHub 인증 요청 한도: 5,000/시간 → 충분히 범위 내
-- 순차 처리 시 ~25분 예상 (요청 간 50ms 딜레이 적용 시)
-- Celery 워커에서 학생별 병렬 처리 가능 (10개 동시): ~3분으로 단축
+**Rate Limit 분석 — REST API 방식은 불가**:
+```
+실제 수업 규모: 50명 × 5문제 × 20시도 = 5,000 커밋
+REST API 방식: 5,000 커밋 × 5 API 호출 = 25,000 요청
+GitHub 인증 한도: 5,000 요청/시간
+→ 5배 초과 → REST API 방식 사용 불가
+```
+
+**해결: git push 프로토콜 사용 (Rate Limit 없음)**:
+- VPS에서 로컬 git 작업 (clone → branch → commit → push)
+- `git push`는 git 스마트 HTTP/SSH 프로토콜 사용 → REST API Rate Limit 미적용
+- PyGit2 또는 subprocess git 명령으로 구현
+- 학생별 병렬 처리 (Celery 10개 동시): 전체 업로드 ~5분 내 완료
 
 **저장소 자동 생성**:
 - 저장소 없으면 `POST /user/repos` 로 private 저장소 자동 생성
