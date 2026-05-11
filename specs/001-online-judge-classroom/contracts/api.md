@@ -253,6 +253,100 @@ data: {"verdict": "ACCEPTED", "score": 80.0, "attempt_number": 7}
 
 ---
 
+## 제출 기록 & 코드 유사도 분석
+
+### `GET /courses/{course_id}/dashboard` — 교사 수업 대시보드
+교사가 접근 가능한 수업 목록과 각 수업의 과제 현황 요약.
+```json
+[{
+  "course_id": "uuid",
+  "name": "string",
+  "assignments": [{
+    "assignment_id": "uuid",
+    "title": "string",
+    "due_at": "ISO8601|null",
+    "submitted_count": "integer",
+    "total_students": "integer"
+  }]
+}]
+```
+
+### `GET /assignments/{assignment_id}/students` — 과제 학생 목록 + 현황 (교사)
+```json
+[{
+  "student_id": "uuid",
+  "name": "string",
+  "email": "string",
+  "total_score": "number",
+  "problems": [{
+    "problem_id": "uuid",
+    "attempt_count": "integer",
+    "final_score": "number",
+    "accepted": "boolean"
+  }]
+}]
+```
+
+### `GET /assignments/{assignment_id}/students/{student_id}/history` — 학생 전체 제출 이력 (교사)
+문제별로 그룹화된 전체 제출 이력. 코드 포함.
+```json
+[{
+  "problem_id": "uuid",
+  "title": "string",
+  "submissions": [{
+    "id": "uuid",
+    "attempt_number": "integer",
+    "submitted_at": "ISO8601",
+    "language": "string",
+    "verdict": "string",
+    "score": "number|null",
+    "code": "string",
+    "is_late": "boolean"
+  }]
+}]
+```
+
+### `POST /assignments/{assignment_id}/similarity-analysis` — 유사도 분석 실행 (교사)
+과제 마감 후에만 실행 가능. 비동기 처리.
+```json
+// Request
+{ "threshold": 80.0 }  // 기본값 80, 선택사항
+
+// Response 202
+{ "task_id": "uuid", "status": "running", "estimated_minutes": 5 }
+```
+
+### `GET /assignments/{assignment_id}/similarity-reports` — 유사도 분석 결과 조회 (교사)
+```json
+{
+  "analyzed_at": "ISO8601",
+  "threshold": 80.0,
+  "problems": [{
+    "problem_id": "uuid",
+    "title": "string",
+    "flagged_pairs": [{
+      "student_a": { "id": "uuid", "name": "string" },
+      "student_b": { "id": "uuid", "name": "string" },
+      "similarity_score": 92.5,
+      "submission_a_id": "uuid",
+      "submission_b_id": "uuid"
+    }],
+    "total_pairs_analyzed": "integer"
+  }]
+}
+```
+
+### `GET /similarity-reports/{report_id}/diff` — 두 제출 코드 나란히 비교 (교사)
+```json
+{
+  "student_a": { "id": "uuid", "name": "string", "code": "string", "language": "string" },
+  "student_b": { "id": "uuid", "name": "string", "code": "string", "language": "string" },
+  "similarity_score": 92.5
+}
+```
+
+---
+
 ## 에러 응답 공통 형식
 
 ```json

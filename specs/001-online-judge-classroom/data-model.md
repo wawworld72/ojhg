@@ -276,6 +276,32 @@ pending → success
 
 ---
 
+---
+
+### SimilarityReport
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | UUID | PK | |
+| assignment_id | UUID | FK(ClassroomAssignment) NOT NULL | |
+| problem_id | UUID | FK(Problem) NOT NULL | |
+| student_a_id | UUID | FK(User) NOT NULL | |
+| student_b_id | UUID | FK(User) NOT NULL | |
+| submission_a_id | UUID | FK(Submission) NOT NULL | 비교 대상 제출 (A) |
+| submission_b_id | UUID | FK(Submission) NOT NULL | 비교 대상 제출 (B) |
+| similarity_score | NUMERIC(5,2) | NOT NULL | 유사도 (0.00 ~ 100.00) |
+| is_flagged | BOOLEAN | NOT NULL DEFAULT false | 임계값 초과 여부 |
+| threshold_used | NUMERIC(5,2) | NOT NULL | 분석 시 적용된 임계값 |
+| analyzed_at | TIMESTAMPTZ | NOT NULL DEFAULT now() | |
+
+**UNIQUE(assignment_id, problem_id, student_a_id, student_b_id)** — student_a_id < student_b_id 정렬 보장으로 (A,B)와 (B,A) 중복 방지.
+
+**비즈니스 규칙**:
+- 동일 과제/문제에 대해 분석을 재실행하면 기존 레코드를 덮어쓴다.
+- 토큰 기반 비교: 변수명·문자열 리터럴 정규화 후 AST 구조 유사도 계산.
+
+---
+
 ## 인덱스 전략
 
 | 테이블 | 인덱스 컬럼 | 목적 |
@@ -285,3 +311,5 @@ pending → success
 | StudentProblemProgress | (student_id, problem_id) | UNIQUE, 채점 시 빈번 조회 |
 | GradePassbackLog | (status, last_attempted_at) | 재시도 대상 조회 |
 | ClassroomAssignment | (classroom_coursework_id) | UNIQUE, Classroom 동기화 |
+| SimilarityReport | (assignment_id, problem_id, is_flagged) | 교사 플래그 목록 조회 |
+| SimilarityReport | (assignment_id, problem_id, similarity_score DESC) | 유사도 순 정렬 |
