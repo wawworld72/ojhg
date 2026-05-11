@@ -121,7 +121,40 @@
 
 ---
 
-## 7. 프로젝트 구조 결정
+## 7. 인프라 — 단일 VPS vs GitHub/PaaS
+
+### Decision: 단일 Linux VPS (Docker Compose) — Hetzner CX32 권장
+
+**GitHub만으로 불가한 이유**:
+- 상시 실행 웹 서버(FastAPI), PostgreSQL, Redis, Celery 워커 모두 GitHub에서 제공 불가.
+- **결정적 제약**: 학생 코드 격리 실행을 위한 Docker 데몬 접근이 GitHub Actions/Pages/Codespaces 어디에서도 허용되지 않음.
+- Railway, Render 등 PaaS도 Docker-in-Docker(DinD) 를 제한적으로만 허용하여 샌드박스 구현 불가.
+
+**50명 규모 최대 동시 부하 계산**:
+- 동시 제출 피크: ~20건 (50명이 완전히 동시에 제출하지 않음, 실측 기준 40% 동시성 가정)
+- 채점 컨테이너 1개: 1 vCPU × 최대 10초, 256MB RAM
+- 20개 동시 채점: 5GB RAM 순간 사용 → **8GB RAM 필요**
+
+**권장 사양 (Hetzner CX32)**:
+- 4 vCPU, 8GB RAM, 80GB SSD
+- 월 €8 (약 ₩12,000)
+- Docker Compose 그대로 배포 가능
+- Ubuntu 22.04 LTS + ufw 방화벽
+
+**배포 전략**:
+- 단일 VPS에 Docker Compose (`docker-compose.prod.yml`)로 전체 스택 실행
+- Nginx 리버스 프록시 → Let's Encrypt SSL
+- GitHub Actions로 CI/CD: 테스트 통과 시 VPS에 SSH 배포 자동화
+- 데이터 백업: PostgreSQL 일 1회 덤프를 외부 스토리지(Hetzner Object Storage)에 보관
+
+**Alternatives considered**:
+- Railway/Render: DinD 샌드박스 불가 → 제외.
+- Google Cloud Run: 상시 실행 서버가 아니라 cold start 문제, Docker 소켓 마운트 불가 → 제외.
+- GitHub Actions 자체 호스팅: 코드 제출 요청마다 Actions runner 실행 불가 → 제외.
+
+---
+
+## 8. 프로젝트 구조 결정
 
 **Decision**: Option 2 (Web application) — backend + frontend 분리 모노레포
 
