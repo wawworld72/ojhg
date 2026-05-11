@@ -14,7 +14,7 @@
 **Primary Dependencies**: FastAPI, SQLAlchemy 2 (async), Celery, google-auth-oauthlib, Next.js 14, React 18
 **Storage**: PostgreSQL 16 (주 데이터), Redis 7 (세션, Celery 브로커/결과), 로컬 볼륨 (테스트 케이스 파일)
 **Testing**: pytest + pytest-asyncio (backend), Jest + Testing Library (frontend), Docker-in-Docker (sandbox integration)
-**Target Platform**: 단일 Linux VPS — Hetzner CX42 (8vCPU/16GB/160GB, Ubuntu 22.04, €18/월), Docker Compose 배포. GitHub Actions로 CI/CD 자동화. 데스크탑 브라우저 (Chrome/Firefox/Edge 최신)
+**Target Platform**: 교사 Mac 로컬 (Apple Silicon M2/M3, 16GB+ RAM) + Docker Desktop + Cloudflare Tunnel. 내부망·외부망 학생 모두 동일 HTTPS URL로 접속. GitHub Actions로 CI 자동화. 원격 수업 전환 시 Hetzner CX42(€18/월)로 동일 compose 파일 이전 가능.
 **Project Type**: Web application (backend API + frontend SPA + async worker)
 **Performance Goals**: 채점 결과 제출 후 5분 이내(대기 포함), 피크 부하 2.8건/초 처리, Classroom 성적 반영 5분 이내
 **Constraints**: 샌드박스 컨테이너 메모리 max 512MB, 실행 시간 max 10초, 네트워크 차단. GitHub Publish는 REST API가 아닌 git push 프로토콜 사용(Rate Limit 없음)

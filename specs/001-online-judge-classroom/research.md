@@ -146,21 +146,57 @@
 | **CX42** | **8** | **16GB** | **8개** | **~3.5분** ✅ | **€18** |
 | CX52 | 16 | 32GB | 16개 | ~1.7분 | €38 |
 
-**권장: Hetzner CX42 (8 vCPU / 16GB / €18/월)**
-- 8개 Celery 워커 병렬 채점 → 평균 대기 3~4분 수용 가능
-- 채점 컨테이너 8개 × 256MB = 2GB + OS/앱 오버헤드 → 16GB 충분
-- 수업 후 Publish (5,000 커밋 git push): Celery 10개 병렬 → ~5분 내 완료
+**권장: 교사 Mac 로컬 서버 (학교 내부망 수업 환경)**
 
-**배포 전략**:
-- 단일 VPS에 Docker Compose (`docker-compose.prod.yml`)로 전체 스택 실행
-- Nginx 리버스 프록시 → Let's Encrypt SSL
-- GitHub Actions로 CI/CD: 테스트 통과 시 VPS에 SSH 배포 자동화
-- 데이터 백업: PostgreSQL 일 1회 덤프를 외부 스토리지(Hetzner Object Storage)에 보관
+수업이 학교 내부망에서 진행되므로 별도 VPS 없이 교사 Mac에서 직접 실행 가능.
+VPS는 원격 수강생 발생 시 동일 docker-compose.yml로 이전하는 옵션으로 유보.
+
+| 항목 | 내용 |
+|------|------|
+| 권장 Mac 사양 | Apple Silicon M2/M3 이상, RAM 16GB 이상 |
+| Docker 샌드박스 | Docker Desktop → 내부 Linux VM에서 컨테이너 실행, 정상 동작 |
+| Apple Silicon | python/openjdk/gcc 모든 이미지 linux/arm64 지원, 문제없음 |
+| 학생 접속 | **Cloudflare Tunnel** 사용 — 내부망·외부망 학생 모두 동일 HTTPS URL로 접속 |
+| HTTPS | Cloudflare Tunnel이 자동 TLS 제공, 별도 인증서 불필요 |
+| Google OAuth 콜백 | Cloudflare Tunnel 고정 도메인을 Google Cloud Console에 등록 |
+| 동시 채점 슬롯 | 8개 Celery 워커 → 평균 대기 3~4분 (피크 부하 기준) |
+
+**Docker Desktop 필수 설정**:
+- Memory: 12GB 이상 (Settings → Resources)
+- CPUs: 8개 이상
+- `platform: linux/arm64` Dockerfile 명시
+
+**네트워크 접근 전략 — Cloudflare Tunnel (무료)**:
+- 내부망 학생과 외부망(별도 망, 재택 등) 학생 모두 동일 URL로 접속
+- `cloudflared tunnel` 데몬을 Mac에서 함께 실행
+- 라우터 포트 포워딩, 학교 IT 협조 불필요, NAT 뒤에서 동작
+- 자동 HTTPS (TLS) 제공 → Google OAuth 콜백 등록이 안정적
+- Cloudflare Free 계정: 고정 커스텀 도메인 연결 가능 (무료 plan 사용 시 `*.trycloudflare.com` 임시 도메인)
+
+```
+학생 브라우저 (내부망 or 외부망)
+  → https://judge.example.com (Cloudflare Edge)
+       → cloudflared 터널
+            → Mac localhost:3000 (Next.js)
+            → Mac localhost:8000 (FastAPI)
+```
+
+**배포 전략 (Mac 로컬)**:
+- `docker compose up` 으로 전체 스택 실행
+- `cloudflared tunnel run` 으로 외부 접속 터널 오픈
+- 수업 시작 전 실행, 종료 후 중단 가능
+- DB 백업: PostgreSQL 덤프를 iCloud Drive 또는 외장 드라이브에 수업 후 저장
+- GitHub Actions: CI(테스트)만 실행, CD(배포) 불필요
+
+**VPS 전환 조건** (필요 시 Hetzner CX42, €18/월):
+- 원격 수강생 발생 시
+- 24/7 가용성 필요 시
+- 동일 `docker-compose.yml`로 그대로 이전 가능
 
 **Alternatives considered**:
 - Railway/Render: DinD 샌드박스 불가 → 제외.
-- Google Cloud Run: 상시 실행 서버가 아니라 cold start 문제, Docker 소켓 마운트 불가 → 제외.
-- GitHub Actions 자체 호스팅: 코드 제출 요청마다 Actions runner 실행 불가 → 제외.
+- Google Cloud Run: cold start 문제, Docker 소켓 마운트 불가 → 제외.
+- Hetzner VPS (즉시): 내부망 수업에 과규모, Mac으로 충분 → 나중 옵션으로 유보.
 
 ---
 
