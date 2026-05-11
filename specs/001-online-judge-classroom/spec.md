@@ -166,7 +166,7 @@
 
 ## Assumptions
 
-- 지원 언어 초기 범위: Python 3, Java 17, C++17 (추후 확장 가능).
+- 지원 언어 초기 범위: Python 3, Java 17, C++17, C17 (추후 확장 가능).
 - 모바일 웹 지원은 v1 범위 밖; 데스크탑 브라우저(Chrome, Firefox, Edge 최신 버전) 기준.
 - Google Workspace for Education 계정을 가진 교육기관을 주요 사용자로 가정.
 - 교사는 Google Classroom에서 과제를 먼저 생성하고 이후 온라인 저지에서 문제 세트와 연동한다.
