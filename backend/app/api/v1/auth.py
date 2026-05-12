@@ -66,14 +66,39 @@ async def google_login(request: Request):
 
 @router.get("/google/callback")
 async def google_callback(request: Request, code: str, state: str):
+    import httpx
+    from google.oauth2.credentials import Credentials
+
     stored_state = request.session.pop("oauth_state", None)
     if stored_state != state:
         return RedirectResponse(f"{settings.frontend_url}?error=state_mismatch")
 
     code_verifier = request.session.pop("oauth_code_verifier", None)
-    flow = _create_flow()
-    flow.fetch_token(code=code, code_verifier=code_verifier)
-    credentials = flow.credentials
+
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
+                "redirect_uri": settings.google_redirect_uri,
+                "grant_type": "authorization_code",
+                **({"code_verifier": code_verifier} if code_verifier else {}),
+            },
+        )
+    token_data = token_resp.json()
+    if "error" in token_data:
+        return RedirectResponse(f"{settings.frontend_url}?error=token_error")
+
+    credentials = Credentials(
+        token=token_data["access_token"],
+        refresh_token=token_data.get("refresh_token"),
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=settings.google_client_id,
+        client_secret=settings.google_client_secret,
+        scopes=SCOPES,
+    )
 
     client = ClassroomAPIClient(credentials)
     profile = await client.get_user_profile()
