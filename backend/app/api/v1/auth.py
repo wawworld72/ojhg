@@ -1,3 +1,7 @@
+import base64
+import hashlib
+import secrets
+
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
@@ -36,18 +40,27 @@ def _create_flow() -> Flow:
     )
 
 
+def _pkce_pair() -> tuple[str, str]:
+    verifier = secrets.token_urlsafe(96)
+    challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(verifier.encode()).digest()
+    ).decode().rstrip("=")
+    return verifier, challenge
+
+
 @router.get("/google")
 async def google_login(request: Request):
     flow = _create_flow()
+    code_verifier, code_challenge = _pkce_pair()
     auth_url, state = flow.authorization_url(
         access_type="offline",
         include_granted_scopes="true",
         prompt="consent",
+        code_challenge=code_challenge,
+        code_challenge_method="S256",
     )
     request.session["oauth_state"] = state
-    code_verifier = getattr(flow.oauth2session, "_code_verifier", None)
-    if code_verifier:
-        request.session["oauth_code_verifier"] = code_verifier
+    request.session["oauth_code_verifier"] = code_verifier
     return RedirectResponse(auth_url)
 
 
@@ -57,12 +70,9 @@ async def google_callback(request: Request, code: str, state: str):
     if stored_state != state:
         return RedirectResponse(f"{settings.frontend_url}?error=state_mismatch")
 
-    flow = _create_flow()
     code_verifier = request.session.pop("oauth_code_verifier", None)
-    fetch_kwargs: dict = {"code": code}
-    if code_verifier:
-        fetch_kwargs["code_verifier"] = code_verifier
-    flow.fetch_token(**fetch_kwargs)
+    flow = _create_flow()
+    flow.fetch_token(code=code, code_verifier=code_verifier)
     credentials = flow.credentials
 
     client = ClassroomAPIClient(credentials)
