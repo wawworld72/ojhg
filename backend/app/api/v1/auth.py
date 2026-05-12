@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import RedirectResponse
-from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 
 from app.core.config import settings
@@ -46,6 +45,9 @@ async def google_login(request: Request):
         prompt="consent",
     )
     request.session["oauth_state"] = state
+    code_verifier = getattr(flow.oauth2session, "_code_verifier", None)
+    if code_verifier:
+        request.session["oauth_code_verifier"] = code_verifier
     return RedirectResponse(auth_url)
 
 
@@ -56,7 +58,11 @@ async def google_callback(request: Request, code: str, state: str):
         return RedirectResponse(f"{settings.frontend_url}?error=state_mismatch")
 
     flow = _create_flow()
-    flow.fetch_token(code=code)
+    code_verifier = request.session.pop("oauth_code_verifier", None)
+    fetch_kwargs: dict = {"code": code}
+    if code_verifier:
+        fetch_kwargs["code_verifier"] = code_verifier
+    flow.fetch_token(**fetch_kwargs)
     credentials = flow.credentials
 
     client = ClassroomAPIClient(credentials)
