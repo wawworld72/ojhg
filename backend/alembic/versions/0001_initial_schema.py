@@ -19,19 +19,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Enums
-    op.execute("CREATE TYPE role_enum AS ENUM ('teacher', 'student')")
+    op.execute("CREATE TYPE IF NOT EXISTS role_enum AS ENUM ('teacher', 'student')")
     op.execute(
-        "CREATE TYPE verdict_enum AS ENUM "
+        "CREATE TYPE IF NOT EXISTS verdict_enum AS ENUM "
         "('PENDING','ACCEPTED','WRONG_ANSWER','TIME_LIMIT_EXCEEDED',"
         "'MEMORY_LIMIT_EXCEEDED','RUNTIME_ERROR','COMPILATION_ERROR')"
     )
-    op.execute("CREATE TYPE passback_status_enum AS ENUM ('pending', 'success', 'failed')")
+    op.execute("CREATE TYPE IF NOT EXISTS passback_status_enum AS ENUM ('pending', 'success', 'failed')")
     op.execute(
-        "CREATE TYPE publish_status_enum AS ENUM "
+        "CREATE TYPE IF NOT EXISTS publish_status_enum AS ENUM "
         "('pending', 'running', 'completed', 'partial', 'failed')"
     )
     op.execute(
-        "CREATE TYPE student_publish_status_enum AS ENUM ('pending', 'success', 'failed')"
+        "CREATE TYPE IF NOT EXISTS student_publish_status_enum AS ENUM ('pending', 'success', 'failed')"
     )
 
     op.create_table(
