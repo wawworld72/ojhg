@@ -18,40 +18,29 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Enums - PostgreSQL doesn't support IF NOT EXISTS for CREATE TYPE; use DO block instead
-    op.execute(
-        "DO $$ BEGIN "
-        "    CREATE TYPE role_enum AS ENUM ('teacher', 'student'); "
-        "EXCEPTION WHEN duplicate_object THEN null; "
-        "END $$;"
+    bind = op.get_bind()
+
+    # Create ENUM types explicitly with checkfirst=True so this is idempotent.
+    # create_type=False on each column prevents SQLAlchemy from trying to create
+    # the type again during op.create_table.
+    role_enum = postgresql.ENUM("teacher", "student", name="role_enum", create_type=False)
+    verdict_enum = postgresql.ENUM(
+        "PENDING", "ACCEPTED", "WRONG_ANSWER", "TIME_LIMIT_EXCEEDED",
+        "MEMORY_LIMIT_EXCEEDED", "RUNTIME_ERROR", "COMPILATION_ERROR",
+        name="verdict_enum", create_type=False,
     )
-    op.execute(
-        "DO $$ BEGIN "
-        "    CREATE TYPE verdict_enum AS ENUM "
-        "    ('PENDING','ACCEPTED','WRONG_ANSWER','TIME_LIMIT_EXCEEDED',"
-        "    'MEMORY_LIMIT_EXCEEDED','RUNTIME_ERROR','COMPILATION_ERROR'); "
-        "EXCEPTION WHEN duplicate_object THEN null; "
-        "END $$;"
+    passback_status_enum = postgresql.ENUM("pending", "success", "failed", name="passback_status_enum", create_type=False)
+    publish_status_enum = postgresql.ENUM(
+        "pending", "running", "completed", "partial", "failed",
+        name="publish_status_enum", create_type=False,
     )
-    op.execute(
-        "DO $$ BEGIN "
-        "    CREATE TYPE passback_status_enum AS ENUM ('pending', 'success', 'failed'); "
-        "EXCEPTION WHEN duplicate_object THEN null; "
-        "END $$;"
-    )
-    op.execute(
-        "DO $$ BEGIN "
-        "    CREATE TYPE publish_status_enum AS ENUM "
-        "    ('pending', 'running', 'completed', 'partial', 'failed'); "
-        "EXCEPTION WHEN duplicate_object THEN null; "
-        "END $$;"
-    )
-    op.execute(
-        "DO $$ BEGIN "
-        "    CREATE TYPE student_publish_status_enum AS ENUM ('pending', 'success', 'failed'); "
-        "EXCEPTION WHEN duplicate_object THEN null; "
-        "END $$;"
-    )
+    student_publish_status_enum = postgresql.ENUM("pending", "success", "failed", name="student_publish_status_enum", create_type=False)
+
+    role_enum.create(bind, checkfirst=True)
+    verdict_enum.create(bind, checkfirst=True)
+    passback_status_enum.create(bind, checkfirst=True)
+    publish_status_enum.create(bind, checkfirst=True)
+    student_publish_status_enum.create(bind, checkfirst=True)
 
     op.create_table(
         "users",
@@ -85,7 +74,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("course_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("role", sa.Enum("teacher", "student", name="role_enum", create_type=False), nullable=False),
+        sa.Column("role", role_enum, nullable=False),
         sa.Column("synced_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["course_id"], ["courses.id"]),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"]),
@@ -196,7 +185,7 @@ def upgrade() -> None:
         sa.Column("submitted_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("is_late", sa.Boolean(), nullable=False, server_default="false"),
         sa.Column("attempt_number", sa.Integer(), nullable=False),
-        sa.Column("verdict", sa.Enum("PENDING","ACCEPTED","WRONG_ANSWER","TIME_LIMIT_EXCEEDED","MEMORY_LIMIT_EXCEEDED","RUNTIME_ERROR","COMPILATION_ERROR", name="verdict_enum", create_type=False), nullable=True, server_default="PENDING"),
+        sa.Column("verdict", verdict_enum, nullable=True, server_default="PENDING"),
         sa.Column("test_case_results", postgresql.JSONB(), nullable=True),
         sa.Column("score", sa.Numeric(10, 2), nullable=True),
         sa.Column("judged_at", sa.DateTime(timezone=True), nullable=True),
@@ -230,7 +219,7 @@ def upgrade() -> None:
         sa.Column("student_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("assignment_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("score", sa.Numeric(10, 2), nullable=False),
-        sa.Column("status", sa.Enum("pending", "success", "failed", name="passback_status_enum", create_type=False), nullable=False, server_default="pending"),
+        sa.Column("status", passback_status_enum, nullable=False, server_default="pending"),
         sa.Column("attempt_count", sa.Integer(), nullable=False, server_default="1"),
         sa.Column("last_attempted_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("error_message", sa.Text(), nullable=True),
@@ -261,7 +250,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("assignment_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("initiated_by", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("status", sa.Enum("pending","running","completed","partial","failed", name="publish_status_enum", create_type=False), nullable=False, server_default="pending"),
+        sa.Column("status", publish_status_enum, nullable=False, server_default="pending"),
         sa.Column("repo_url", sa.Text(), nullable=True),
         sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
@@ -276,7 +265,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("publish_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("student_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("status", sa.Enum("pending","success","failed", name="student_publish_status_enum", create_type=False), nullable=False, server_default="pending"),
+        sa.Column("status", student_publish_status_enum, nullable=False, server_default="pending"),
         sa.Column("branch_name", sa.String(500), nullable=True),
         sa.Column("branch_url", sa.Text(), nullable=True),
         sa.Column("commits_pushed", sa.Integer(), nullable=False, server_default="0"),
