@@ -18,20 +18,39 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Enums
-    op.execute("CREATE TYPE IF NOT EXISTS role_enum AS ENUM ('teacher', 'student')")
+    # Enums - PostgreSQL doesn't support IF NOT EXISTS for CREATE TYPE; use DO block instead
     op.execute(
-        "CREATE TYPE IF NOT EXISTS verdict_enum AS ENUM "
-        "('PENDING','ACCEPTED','WRONG_ANSWER','TIME_LIMIT_EXCEEDED',"
-        "'MEMORY_LIMIT_EXCEEDED','RUNTIME_ERROR','COMPILATION_ERROR')"
-    )
-    op.execute("CREATE TYPE IF NOT EXISTS passback_status_enum AS ENUM ('pending', 'success', 'failed')")
-    op.execute(
-        "CREATE TYPE IF NOT EXISTS publish_status_enum AS ENUM "
-        "('pending', 'running', 'completed', 'partial', 'failed')"
+        "DO $$ BEGIN "
+        "    CREATE TYPE role_enum AS ENUM ('teacher', 'student'); "
+        "EXCEPTION WHEN duplicate_object THEN null; "
+        "END $$;"
     )
     op.execute(
-        "CREATE TYPE IF NOT EXISTS student_publish_status_enum AS ENUM ('pending', 'success', 'failed')"
+        "DO $$ BEGIN "
+        "    CREATE TYPE verdict_enum AS ENUM "
+        "    ('PENDING','ACCEPTED','WRONG_ANSWER','TIME_LIMIT_EXCEEDED',"
+        "    'MEMORY_LIMIT_EXCEEDED','RUNTIME_ERROR','COMPILATION_ERROR'); "
+        "EXCEPTION WHEN duplicate_object THEN null; "
+        "END $$;"
+    )
+    op.execute(
+        "DO $$ BEGIN "
+        "    CREATE TYPE passback_status_enum AS ENUM ('pending', 'success', 'failed'); "
+        "EXCEPTION WHEN duplicate_object THEN null; "
+        "END $$;"
+    )
+    op.execute(
+        "DO $$ BEGIN "
+        "    CREATE TYPE publish_status_enum AS ENUM "
+        "    ('pending', 'running', 'completed', 'partial', 'failed'); "
+        "EXCEPTION WHEN duplicate_object THEN null; "
+        "END $$;"
+    )
+    op.execute(
+        "DO $$ BEGIN "
+        "    CREATE TYPE student_publish_status_enum AS ENUM ('pending', 'success', 'failed'); "
+        "EXCEPTION WHEN duplicate_object THEN null; "
+        "END $$;"
     )
 
     op.create_table(
