@@ -11,26 +11,32 @@ export default function TeacherProblemSetsPage() {
   const [problemSets, setProblemSets] = useState<ProblemSet[]>([]);
   const [name, setName] = useState("");
   const [courseId, setCourseId] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
+    const errors: string[] = [];
+
     try {
-      const [coursesRes, setsRes] = await Promise.all([
-        apiClient.get("/courses"),
-        apiClient.get("/problem-sets"),
-      ]);
+      const coursesRes = await apiClient.get("/courses");
       const teacherCourses = coursesRes.data.filter((c: Course) => c.role === "teacher");
       setCourses(teacherCourses);
       if (teacherCourses.length > 0 && !courseId) {
         setCourseId(teacherCourses[0].id);
       }
-      setProblemSets(setsRes.data);
-    } catch {
-      setMessage("❌ 데이터를 불러오지 못했습니다.");
-    } finally {
-      setLoading(false);
+    } catch (err: any) {
+      errors.push(`강좌 로드 실패 (${err.response?.status ?? err.message})`);
     }
+
+    try {
+      const setsRes = await apiClient.get("/problem-sets");
+      setProblemSets(setsRes.data);
+    } catch (err: any) {
+      errors.push(`문제세트 로드 실패 (${err.response?.status ?? err.message})`);
+    }
+
+    if (errors.length > 0) setMessage(`❌ ${errors.join(" | ")}`);
+    setLoading(false);
   };
 
   useEffect(() => {
