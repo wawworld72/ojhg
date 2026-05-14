@@ -44,3 +44,4 @@ backend/testcases/
 backend/alembic/versions/*.pyc
 .claude/*.pid
 next-env.d.ts
+*.log*
