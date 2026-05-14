@@ -43,9 +43,10 @@ app = FastAPI(
     redoc_url=None,
 )
 
+_cors_origins = [settings.frontend_url, "http://localhost", "http://localhost:80"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,7 +64,10 @@ app.add_middleware(
 async def request_id_middleware(request: Request, call_next):
     request_id = str(uuid.uuid4())
     request.state.request_id = request_id
-    user_id = request.session.get("user_id", "-") if hasattr(request, "session") else "-"
+    try:
+        user_id = request.session.get("user_id", "-")
+    except AssertionError:
+        user_id = "-"
     logger.info(
         "request start method=%s path=%s",
         request.method,

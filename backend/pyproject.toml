@@ -6,9 +6,6 @@ build-backend = "hatchling.build"
 name = "online-judge-backend"
 version = "0.1.0"
 requires-python = ">=3.11"
-
-[tool.hatch.build.targets.wheel]
-packages = ["app", "workers", "judge"]
 dependencies = [
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.29.0",
@@ -31,6 +28,9 @@ dependencies = [
     "itsdangerous>=2.2.0",
     "python-jose[cryptography]>=3.3.0",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "workers", "judge"]
 
 [project.optional-dependencies]
 dev = [

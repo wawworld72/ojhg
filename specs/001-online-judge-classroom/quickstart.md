@@ -15,12 +15,13 @@
 
 ### 0-2. 필요한 API 활성화
 
-**API 및 서비스 → 라이브러리**에서 아래 두 API를 검색 후 각각 **사용 설정**:
+**API 및 서비스 → 라이브러리**에서 아래 API를 검색 후 **사용 설정**:
 
 | API | 용도 |
 |-----|------|
 | **Google Classroom API** | 과제 목록 조회, 성적 반영 |
-| **People API** | 로그인 사용자 프로필(이름, 사진) 조회 |
+
+> 사용자 프로필(이름, 사진)은 기본 OAuth2 userinfo 엔드포인트로 처리되므로 People API는 불필요합니다.
 
 ### 0-3. OAuth 동의 화면 구성
 
@@ -70,7 +71,7 @@ Docker Desktop → Settings → Resources:
 
 ---
 
-## 1. 환경 변수 설정
+## 2. 환경 변수 설정
 
 ```bash
 cd infra
@@ -102,20 +103,20 @@ openssl rand -hex 32   # ENCRYPTION_KEY 용
 openssl rand -hex 32   # SECRET_KEY 용
 ```
 
-## 2. Docker Compose로 전체 스택 실행
+## 3. Docker Compose로 전체 스택 실행
 
 ```bash
 docker compose up -d
 # 실행 서비스: postgres, redis, backend(FastAPI), frontend(Next.js), celery-worker(×8)
 ```
 
-## 3. DB 마이그레이션
+## 4. DB 마이그레이션
 
 ```bash
 docker compose exec backend alembic upgrade head
 ```
 
-## 4. Cloudflare Tunnel 설정 (내부망 + 외부망 학생 모두 지원)
+## 5. Cloudflare Tunnel 설정 (내부망 + 외부망 학생 모두 지원)
 
 일부 학생이 외부 망을 사용하는 경우를 위해 Cloudflare Tunnel을 사용합니다.
 내부망 학생도 동일한 URL로 접속하므로 URL을 하나로 통일할 수 있습니다.
@@ -137,7 +138,7 @@ cloudflared tunnel --url http://localhost:3000 run ojhg-judge
 
 > **무료 계정 사용 시**: `cloudflared tunnel --url http://localhost:3000` 으로 임시 URL 생성 가능 (`*.trycloudflare.com`). 수업마다 URL이 바뀌므로 Cloudflare 계정 연동 후 고정 도메인 사용 권장.
 
-## 5. Google OAuth 콜백 등록
+## 6. Google OAuth 콜백 등록
 
 Google Cloud Console → OAuth 2.0 클라이언트 → 승인된 리디렉션 URI:
 ```
@@ -145,7 +146,7 @@ https://<cloudflare-tunnel-domain>/api/v1/auth/google/callback
 ```
 > Cloudflare Tunnel 도메인은 고정이므로 최초 1회만 등록하면 됩니다.
 
-## 6. 수업 종료 후 DB 백업
+## 7. 수업 종료 후 DB 백업
 
 ```bash
 docker compose exec postgres pg_dump -U postgres ojhg > backup_$(date +%Y%m%d).sql
