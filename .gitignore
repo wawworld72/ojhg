@@ -43,3 +43,4 @@ backend/testcases/
 # Alembic (generated)
 backend/alembic/versions/*.pyc
 .claude/*.pid
+next-env.d.ts
