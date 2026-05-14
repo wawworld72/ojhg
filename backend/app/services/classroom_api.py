@@ -22,10 +22,15 @@ class ClassroomAPIClient:
 
         return await asyncio.get_event_loop().run_in_executor(None, _call)
 
-    async def list_courses(self) -> list[dict[str, Any]]:
+    async def list_courses(self, teacher_id: str | None = None, student_id: str | None = None) -> list[dict[str, Any]]:
         def _call():
             svc = self._service("classroom", "v1")
-            result = svc.courses().list(courseStates=["ACTIVE"]).execute()  # type: ignore
+            kwargs: dict = {"courseStates": ["ACTIVE"]}
+            if teacher_id:
+                kwargs["teacherId"] = teacher_id
+            if student_id:
+                kwargs["studentId"] = student_id
+            result = svc.courses().list(**kwargs).execute()  # type: ignore
             return result.get("courses", [])
 
         return await asyncio.get_event_loop().run_in_executor(None, _call)
