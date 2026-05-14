@@ -13,6 +13,7 @@ export default function TeacherProblemSetsPage() {
   const [courseId, setCourseId] = useState("");
   const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   const fetchData = async () => {
     const errors: string[] = [];
@@ -39,6 +40,24 @@ export default function TeacherProblemSetsPage() {
     setLoading(false);
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    setMessage("");
+    try {
+      const res = await apiClient.post("/courses/sync");
+      const teacherCourses = res.data.filter((c: Course) => c.role === "teacher");
+      setCourses(teacherCourses);
+      if (teacherCourses.length > 0 && !courseId) {
+        setCourseId(teacherCourses[0].id);
+      }
+      setMessage(teacherCourses.length > 0 ? `✅ ${teacherCourses.length}개 강좌 동기화 완료` : "✅ 동기화 완료 (강좌 없음)");
+    } catch (err: any) {
+      setMessage(`❌ 동기화 실패: ${err.response?.data?.detail ?? err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -59,7 +78,16 @@ export default function TeacherProblemSetsPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h1>문제 세트 관리</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <h1 style={{ margin: 0 }}>문제 세트 관리</h1>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          style={{ padding: "6px 14px", background: "#4caf50", color: "white", border: "none", borderRadius: 4, cursor: syncing ? "default" : "pointer", opacity: syncing ? 0.6 : 1, fontSize: 13 }}
+        >
+          {syncing ? "동기화 중..." : "강좌 동기화"}
+        </button>
+      </div>
 
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16, marginBottom: 8 }}>새 문제 세트 만들기</h2>

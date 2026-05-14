@@ -41,6 +41,103 @@ async def list_courses(request: Request, db: AsyncSession = Depends(get_db)):
     ]
 
 
+@router.post("/courses/sync")
+async def sync_courses(request: Request, db: AsyncSession = Depends(get_db)):
+    """Re-sync Google Classroom courses and enrollments for the current user."""
+    from app.models.user import User
+    from app.core.security import decrypt_token
+    from app.core.config import settings
+
+    user_id = _get_current_user_id(request)
+
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    user = user_result.scalar_one_or_none()
+    if not user or not user.encrypted_refresh_token:
+        raise HTTPException(status_code=403, detail="No stored credentials")
+
+    try:
+        from google.oauth2.credentials import Credentials
+        from app.services.classroom_api import ClassroomAPIClient
+
+        creds = Credentials(
+            token=None,
+            refresh_token=decrypt_token(user.encrypted_refresh_token),
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=settings.google_client_id,
+            client_secret=settings.google_client_secret,
+        )
+        client = ClassroomAPIClient(creds)
+
+        import asyncio
+        from datetime import datetime, timezone
+        from app.models.course import CourseEnrollment
+
+        now = datetime.now(timezone.utc)
+        teacher_courses, student_courses = await asyncio.gather(
+            client.list_courses(teacher_id="me"),
+            client.list_courses(student_id="me"),
+        )
+        courses_by_role = [(c, "teacher") for c in teacher_courses] + [(c, "student") for c in student_courses]
+
+        for c, role in courses_by_role:
+            classroom_id = c["id"]
+            result = await db.execute(
+                select(Course).where(Course.classroom_course_id == classroom_id)
+            )
+            course = result.scalar_one_or_none()
+            if course is None:
+                course = Course(
+                    classroom_course_id=classroom_id,
+                    name=c.get("name", ""),
+                    section=c.get("section"),
+                    synced_at=now,
+                )
+                db.add(course)
+                await db.flush()
+            else:
+                course.name = c.get("name", "")
+                course.section = c.get("section")
+                course.synced_at = now
+
+            enroll_result = await db.execute(
+                select(CourseEnrollment).where(
+                    CourseEnrollment.course_id == course.id,
+                    CourseEnrollment.user_id == user_id,
+                )
+            )
+            enrollment = enroll_result.scalar_one_or_none()
+            if enrollment is None:
+                db.add(CourseEnrollment(
+                    course_id=course.id,
+                    user_id=user_id,
+                    role=role,
+                    synced_at=now,
+                ))
+            else:
+                enrollment.role = role
+                enrollment.synced_at = now
+
+        await db.commit()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Classroom sync failed: {e}")
+
+    result = await db.execute(
+        select(CourseEnrollment)
+        .options(selectinload(CourseEnrollment.course))
+        .where(CourseEnrollment.user_id == user_id)
+    )
+    enrollments = result.scalars().all()
+    return [
+        {
+            "id": str(e.course.id),
+            "classroom_course_id": e.course.classroom_course_id,
+            "name": e.course.name,
+            "role": e.role,
+        }
+        for e in enrollments
+    ]
+
+
 @router.get("/courses/{course_id}/assignments")
 async def list_assignments(
     course_id: uuid.UUID,
