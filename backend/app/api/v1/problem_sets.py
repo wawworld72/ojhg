@@ -154,6 +154,27 @@ async def get_problem_set(
 
 # ─── Teacher endpoints ─────────────────────────────────────────────────────────
 
+@router.get("/problem-sets")
+async def list_problem_sets(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    _get_current_user_id(request)
+    result = await db.execute(
+        select(ProblemSet).options(selectinload(ProblemSet.problems))
+    )
+    problem_sets = result.scalars().all()
+    return [
+        {
+            "id": str(ps.id),
+            "name": ps.name,
+            "course_id": str(ps.course_id),
+            "problems": [{"id": str(p.id), "title": p.title} for p in ps.problems],
+        }
+        for ps in problem_sets
+    ]
+
+
 @router.post("/problem-sets", status_code=201)
 async def create_problem_set(
     body: ProblemSetCreate,
