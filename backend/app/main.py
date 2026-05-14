@@ -43,9 +43,10 @@ app = FastAPI(
     redoc_url=None,
 )
 
+_cors_origins = [settings.frontend_url, "http://localhost", "http://localhost:80"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
