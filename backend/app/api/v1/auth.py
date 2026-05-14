@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import secrets
@@ -84,7 +85,8 @@ async def google_callback(request: Request, code: str, state: str):
                 "client_secret": settings.google_client_secret,
                 "redirect_uri": settings.google_redirect_uri,
                 "grant_type": "authorization_code",
-                **({"code_verifier": code_verifier} if code_verifier else {}),
+                **({
+                    "code_verifier": code_verifier} if code_verifier else {}),
             },
         )
     token_data = token_resp.json()
@@ -132,7 +134,71 @@ async def google_callback(request: Request, code: str, state: str):
         await session.refresh(user)
 
     request.session["user_id"] = str(user.id)
+
+    # Sync Google Classroom courses and enrollments for this user
+    try:
+        await _sync_courses(client, user.id)
+    except Exception:
+        pass  # Don't block login if classroom sync fails
+
     return RedirectResponse(settings.frontend_url)
+
+
+async def _sync_courses(client: ClassroomAPIClient, user_id) -> None:
+    from datetime import datetime, timezone
+    from sqlalchemy import select
+    from app.models.course import Course, CourseEnrollment
+
+    now = datetime.now(timezone.utc)
+
+    # Fetch teacher and student courses separately to determine role correctly
+    teacher_courses, student_courses = await asyncio.gather(
+        client.list_courses(teacher_id="me"),
+        client.list_courses(student_id="me"),
+    )
+    courses_by_role = [(c, "teacher") for c in teacher_courses] + [(c, "student") for c in student_courses]
+
+    async with AsyncSessionFactory() as session:
+        for c, role in courses_by_role:
+            classroom_id = c["id"]
+
+            result = await session.execute(
+                select(Course).where(Course.classroom_course_id == classroom_id)
+            )
+            course = result.scalar_one_or_none()
+            if course is None:
+                course = Course(
+                    classroom_course_id=classroom_id,
+                    name=c.get("name", ""),
+                    section=c.get("section"),
+                    synced_at=now,
+                )
+                session.add(course)
+                await session.flush()
+            else:
+                course.name = c.get("name", "")
+                course.section = c.get("section")
+                course.synced_at = now
+
+            enroll_result = await session.execute(
+                select(CourseEnrollment).where(
+                    CourseEnrollment.course_id == course.id,
+                    CourseEnrollment.user_id == user_id,
+                )
+            )
+            enrollment = enroll_result.scalar_one_or_none()
+            if enrollment is None:
+                session.add(CourseEnrollment(
+                    course_id=course.id,
+                    user_id=user_id,
+                    role=role,
+                    synced_at=now,
+                ))
+            else:
+                enrollment.role = role
+                enrollment.synced_at = now
+
+        await session.commit()
 
 
 @router.post("/logout")
