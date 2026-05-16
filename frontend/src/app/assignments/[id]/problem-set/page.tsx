@@ -64,106 +64,113 @@ export default function ProblemSetPage() {
   if (!data) return <div style={{ padding: 16 }}>Loading...</div>;
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      {/* Sidebar: problem list */}
-      <aside style={{ width: 240, borderRight: "1px solid #eee", padding: 16, overflowY: "auto" }}>
-        <h2 style={{ fontSize: 14, marginBottom: 8 }}>{data.problem_set.name}</h2>
-        <p style={{ fontSize: 12, color: "#666" }}>총 점수: {data.my_total_score.toFixed(1)}</p>
-        {data.is_late_access && <p style={{ fontSize: 12, color: "orange" }}>지각 제출</p>}
-        {data.problems.map(p => (
-          <div
-            key={p.id}
-            onClick={() => { setSelectedProblem(p); setSubmissionId(null); }}
-            style={{
-              padding: "8px 12px",
-              marginBottom: 4,
-              cursor: "pointer",
-              borderRadius: 4,
-              background: selectedProblem?.id === p.id ? "#e8f4fd" : "transparent",
-              border: selectedProblem?.id === p.id ? "1px solid #2196f3" : "1px solid transparent",
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 600 }}>
-              {p.display_order}. {p.title}
-            </div>
-            <div style={{ fontSize: 11, color: p.my_progress.accepted ? "green" : "#666" }}>
-              {p.my_progress.accepted
-                ? `✓ ${p.my_progress.final_score?.toFixed(1)} / ${p.max_points}`
-                : `시도: ${p.my_progress.attempt_count} | ${p.max_points}점`}
-            </div>
-          </div>
-        ))}
-      </aside>
+    <div style={{ display: "flex", height: "100vh", flexDirection: "column" }}>
+      {/* Top bar: problem set info + result */}
+      {submissionId && (
+        <div style={{ padding: 16, background: "#fafafa", borderBottom: "1px solid #eee", maxHeight: "200px", overflowY: "auto" }}>
+          <JudgeResult submissionId={submissionId} />
+        </div>
+      )}
 
-      {/* Main content */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {selectedProblem && (
-          <>
-            <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
-              <h1 style={{ fontSize: 18 }}>
-                {selectedProblem.display_order}. {selectedProblem.title}
-              </h1>
-              <div style={{ fontSize: 12, color: "#666", marginBottom: 12 }}>
-                시간: {selectedProblem.time_limit_sec}초 | 메모리: {selectedProblem.memory_limit_mb}MB | 배점: {selectedProblem.max_points}점
+      {/* Main layout: sidebar + content */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* Sidebar: problem list */}
+        <aside style={{ width: 240, borderRight: "1px solid #eee", padding: 16, overflowY: "auto" }}>
+          <h2 style={{ fontSize: 14, marginBottom: 8 }}>{data.problem_set.name}</h2>
+          <p style={{ fontSize: 12, color: "#666" }}>총 점수: {data.my_total_score.toFixed(1)}</p>
+          {data.is_late_access && <p style={{ fontSize: 12, color: "orange" }}>지각 제출</p>}
+          {data.problems.map(p => (
+            <div
+              key={p.id}
+              onClick={() => { setSelectedProblem(p); setSubmissionId(null); }}
+              style={{
+                padding: "8px 12px",
+                marginBottom: 4,
+                cursor: "pointer",
+                borderRadius: 4,
+                background: selectedProblem?.id === p.id ? "#e8f4fd" : "transparent",
+                border: selectedProblem?.id === p.id ? "1px solid #2196f3" : "1px solid transparent",
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                {p.display_order}. {p.title}
               </div>
-              <pre style={{ background: "#f5f5f5", padding: 12, borderRadius: 4, whiteSpace: "pre-wrap" }}>
-                {selectedProblem.description_md}
-              </pre>
-              {selectedProblem.public_test_cases.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <h3 style={{ fontSize: 14 }}>예제</h3>
-                  {selectedProblem.public_test_cases.map(tc => (
-                    <div key={tc.order} style={{ display: "flex", gap: 12, marginBottom: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600 }}>입력 {tc.order}</div>
-                        <pre style={{ background: "#f5f5f5", padding: 8, borderRadius: 4, fontSize: 12 }}>{tc.input_preview}</pre>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600 }}>출력 {tc.order}</div>
-                        <pre style={{ background: "#f5f5f5", padding: 8, borderRadius: 4, fontSize: 12 }}>{tc.expected_output_preview}</pre>
-                      </div>
-                    </div>
-                  ))}
+              <div style={{ fontSize: 11, color: p.my_progress.accepted ? "green" : "#666" }}>
+                {p.my_progress.accepted
+                  ? `✓ ${p.my_progress.final_score?.toFixed(1)} / ${p.max_points}`
+                  : `시도: ${p.my_progress.attempt_count} | ${p.max_points}점`}
+              </div>
+            </div>
+          ))}
+        </aside>
+
+        {/* Main content */}
+        <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {selectedProblem && (
+            <>
+              <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+                <h1 style={{ fontSize: 18 }}>
+                  {selectedProblem.display_order}. {selectedProblem.title}
+                </h1>
+                <div style={{ fontSize: 12, color: "#666", marginBottom: 12 }}>
+                  시간: {selectedProblem.time_limit_sec}초 | 메모리: {selectedProblem.memory_limit_mb}MB | 배점: {selectedProblem.max_points}점
                 </div>
-              )}
-              {/* Score tiers */}
-              <div style={{ marginTop: 12 }}>
-                <h3 style={{ fontSize: 14 }}>점수 구간</h3>
-                <table style={{ fontSize: 12, borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ border: "1px solid #ddd", padding: "4px 8px" }}>시도 범위</th>
-                      <th style={{ border: "1px solid #ddd", padding: "4px 8px" }}>점수 비율</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedProblem.score_tiers.map((tier, i) => (
-                      <tr key={i}>
-                        <td style={{ border: "1px solid #ddd", padding: "4px 8px" }}>
-                          {tier.min_attempts}~{tier.max_attempts ?? "∞"}회
-                        </td>
-                        <td style={{ border: "1px solid #ddd", padding: "4px 8px" }}>{tier.score_ratio}%</td>
-                      </tr>
+                <pre style={{ background: "#f5f5f5", padding: 12, borderRadius: 4, whiteSpace: "pre-wrap" }}>
+                  {selectedProblem.description_md}
+                </pre>
+                {selectedProblem.public_test_cases.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <h3 style={{ fontSize: 14 }}>예제</h3>
+                    {selectedProblem.public_test_cases.map(tc => (
+                      <div key={tc.order} style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600 }}>입력 {tc.order}</div>
+                          <pre style={{ background: "#f5f5f5", padding: 8, borderRadius: 4, fontSize: 12 }}>{tc.input_preview}</pre>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600 }}>출력 {tc.order}</div>
+                          <pre style={{ background: "#f5f5f5", padding: 8, borderRadius: 4, fontSize: 12 }}>{tc.expected_output_preview}</pre>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                )}
+                {/* Score tiers */}
+                <div style={{ marginTop: 12 }}>
+                  <h3 style={{ fontSize: 14 }}>점수 구간</h3>
+                  <table style={{ fontSize: 12, borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ border: "1px solid #ddd", padding: "4px 8px" }}>시도 범위</th>
+                        <th style={{ border: "1px solid #ddd", padding: "4px 8px" }}>점수 비율</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedProblem.score_tiers.map((tier, i) => (
+                        <tr key={i}>
+                          <td style={{ border: "1px solid #ddd", padding: "4px 8px" }}>
+                            {tier.min_attempts}~{tier.max_attempts ?? "∞"}회
+                          </td>
+                          <td style={{ border: "1px solid #ddd", padding: "4px 8px" }}>{tier.score_ratio}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              {submissionId && (
-                <JudgeResult submissionId={submissionId} />
-              )}
-            </div>
-            <div style={{ borderTop: "1px solid #eee" }}>
-              <CodeEditor
-                allowedLanguages={selectedProblem.allowed_languages}
-                attemptCount={selectedProblem.my_progress.attempt_count}
-                nextTier={selectedProblem.my_progress.next_tier}
-                accepted={selectedProblem.my_progress.accepted}
-                onSubmit={handleSubmit}
-              />
-            </div>
-          </>
-        )}
-      </main>
+              <div style={{ borderTop: "1px solid #eee" }}>
+                <CodeEditor
+                  allowedLanguages={selectedProblem.allowed_languages}
+                  attemptCount={selectedProblem.my_progress.attempt_count}
+                  nextTier={selectedProblem.my_progress.next_tier}
+                  accepted={selectedProblem.my_progress.accepted}
+                  onSubmit={handleSubmit}
+                />
+              </div>
+            </>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
