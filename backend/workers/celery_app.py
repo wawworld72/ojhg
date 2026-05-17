@@ -27,6 +27,7 @@ celery_app.conf.update(
     enable_utc=True,
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    worker_pool="solo",
     task_max_retries=3,
     task_default_retry_delay=30,
     result_expires=3600,
