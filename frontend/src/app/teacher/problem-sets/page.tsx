@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiClient } from "@/services/api";
 
 type Course = { id: string; name: string; role: string };
@@ -135,6 +136,7 @@ export default function TeacherProblemSetsPage() {
                 <th style={{ padding: "8px 12px" }}>이름</th>
                 <th style={{ padding: "8px 12px" }}>강좌</th>
                 <th style={{ padding: "8px 12px" }}>문제 수</th>
+                <th style={{ padding: "8px 12px" }}>작업</th>
               </tr>
             </thead>
             <tbody>
@@ -143,6 +145,11 @@ export default function TeacherProblemSetsPage() {
                   <td style={{ padding: "8px 12px" }}>{ps.name}</td>
                   <td style={{ padding: "8px 12px" }}>{courseMap[ps.course_id] ?? ps.course_id}</td>
                   <td style={{ padding: "8px 12px" }}>{ps.problems?.length ?? 0}</td>
+                  <td style={{ padding: "8px 12px" }}>
+                    <Link href={`/teacher/problem-sets/${ps.id}`} style={{ color: "#2196f3", textDecoration: "none" }}>
+                      편집
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
