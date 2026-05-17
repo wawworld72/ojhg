@@ -31,16 +31,5 @@ celery_app.conf.update(
     task_max_retries=3,
     task_default_retry_delay=30,
     result_expires=3600,
-    beat_schedule={
-        # Classroom schedule sync every 15 minutes
-        "sync-classroom-schedules": {
-            "task": "workers.grade_sync_task.sync_classroom_schedules",
-            "schedule": crontab(minute="*/15"),
-        },
-        # Deadline batch finalization every 5 minutes
-        "finalize-due-assignments": {
-            "task": "workers.grade_sync_task.finalize_due_assignments",
-            "schedule": crontab(minute="*/5"),
-        },
-    },
+    beat_schedule={},
 )
