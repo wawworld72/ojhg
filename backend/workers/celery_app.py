@@ -1,5 +1,11 @@
+import sys
+from pathlib import Path
+
 from celery import Celery
 from celery.schedules import crontab
+
+# Add parent directory to Python path so judge module can be imported
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.core.config import settings
 

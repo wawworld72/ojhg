@@ -19,6 +19,7 @@ out/
 build/
 *.log
 npm-debug.log*
+next-env.d.ts
 
 # Docker
 *.env.local
