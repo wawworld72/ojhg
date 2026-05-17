@@ -1,8 +1,13 @@
 """Judge Celery task — orchestrates sandbox execution and result persistence."""
 import asyncio
+import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Ensure /app is in Python path for judge module import
+if '/app' not in sys.path:
+    sys.path.insert(0, '/app')
 
 from workers.celery_app import celery_app
 
