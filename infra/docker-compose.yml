@@ -57,7 +57,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    command: celery -A workers.celery_app worker --loglevel=info --pool=solo
+    command: celery -A workers.celery_app worker --loglevel=info --pool=threads --concurrency=4
     environment:
       - DATABASE_URL=postgresql+asyncpg://judge:${POSTGRES_PASSWORD:-judgepass}@postgres:5432/onlinejudge
       - REDIS_URL=redis://redis:6379/0
