@@ -37,10 +37,10 @@ celery_app.conf.update(
             "task": "workers.grade_sync_task.sync_classroom_schedules",
             "schedule": crontab(minute="*/15"),
         },
-        # Deadline batch finalization every minute
+        # Deadline batch finalization every 5 minutes
         "finalize-due-assignments": {
             "task": "workers.grade_sync_task.finalize_due_assignments",
-            "schedule": crontab(minute="*"),
+            "schedule": crontab(minute="*/5"),
         },
     },
 )
